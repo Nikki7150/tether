@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -12,12 +12,18 @@ function createWindow() {
     autoHideMenuBar: true,
     frame: false,
     transparent: true,
+    resizable: false,
+    maximizable: false,
+    fullscreenable: false,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
     }
   })
+
+  mainWindow.setAlwaysOnTop(true, 'screen-saver')
+  mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -51,8 +57,29 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
+  ipcMain.on('set-expanded', (event, expanded) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win) return
+    win.setSize(expanded ? 320 : 50, expanded ? 400 : 50)
+  })
+
+  let draOffset = null;
+  ipcMain.on('drag-start', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win) return
+    const cursor = screen.getCursorScreenPoint()
+    const [winX, winY] = win.getPosition()
+    draOffset = { x: cursor.x - winX, y: cursor.y - winY}
+  })
+  ipcMain.on('drag-move', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win || !draOffset) return
+    const cursor = screen.getCursorScreenPoint()
+    win.setPosition(cursor.x - draOffset.x, cursor.y - draOffset.y)
+  })
+  ipcMain.on('drag-start', () => {
+    draOffset = null
+  })
 
   createWindow()
 
