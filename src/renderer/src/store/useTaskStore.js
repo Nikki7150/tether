@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 export const useTaskStore = create((set) => ({
-    task: [],
+    tasks: [],
     addTask: (text) => {
         const newTask = {
             id: crypto.randomUUID(),

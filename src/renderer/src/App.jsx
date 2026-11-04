@@ -2,9 +2,11 @@ import { useState } from 'react';
 import './styles/App.css'
 import AddTask from './components/AddTask';
 import TaskList from './components/TaskList';
+import { useTaskStore } from './store/useTaskStore';
 
 function App() {
   const [expanded, setExpanded] = useState(false);
+  const { tasks } = useTaskStore();
   const handleMouseDown = () => {
     let hasMoved = false;
     window.electron.ipcRenderer.send('drag-start');
@@ -24,12 +26,13 @@ function App() {
     setExpanded(next)
     window.electron.ipcRenderer.send('set-expanded', next)
   }
+
   return (
     <div className={expanded ? 'app expanded' : 'app'} onMouseDown={handleMouseDown}>
       {!expanded && <button className='num-tasks' onClick={toggle}>8</button>}
       {expanded && (
-        <div className='to-do-list-container'>
-          <button className='num-tasks' onClick={toggle}>8</button>
+        <div className='to-do-list-container' onMouseDown={(e) => e.stopPropagation()}>
+          <button className='toggle-close' onClick={toggle}>X</button>
           <AddTask />
           <TaskList />
         </div>
