@@ -57,10 +57,49 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
+  const ORB_SIZE = 50
+  const PANEL_W = 320
+  const PANEL_H = 400
+  let preExpandedPosition = null
+
   ipcMain.on('set-expanded', (event, expanded) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win) return
-    win.setSize(expanded ? 320 : 50, expanded ? 400 : 50)
+    const bounds = win.getBounds()
+    if (expanded) {
+      preExpandedPosition = { x: bounds.x, y: bounds.y }
+      const currentDisplay = screen.getDisplayMatching(bounds)
+      const { workArea } = currentDisplay
+      let newX = bounds.x
+      let newY = bounds.y
+      const panelRightEdge = newX + PANEL_W
+      const workAreaRightEdge = workArea.x + workArea.width
+      const rightOverflow = panelRightEdge - workAreaRightEdge
+      if (rightOverflow > 0) {
+        newX -= rightOverflow;
+      }
+      const panelBottomEdge = newY + PANEL_H
+      const workAreaBottomEdge = workArea.y + workArea.height
+      const bottomOverflow = panelBottomEdge - workAreaBottomEdge
+      if (bottomOverflow > 0) {
+        newY -= bottomOverflow;
+      }
+      win.setBounds({
+        x: newX,
+        y: newY,
+        width: PANEL_W,
+        height: PANEL_H
+      })
+    } else {
+      const targetX = preExpandedPosition ? preExpandedPosition.x : bounds.x
+      const targetY = preExpandedPosition ? preExpandedPosition.y : bounds.y
+      win.setBounds({
+        x: targetX,
+        y: targetY,
+        width: ORB_SIZE,
+        height: ORB_SIZE
+      })
+    }
   })
 
   let draOffset = null;
@@ -77,7 +116,7 @@ app.whenReady().then(() => {
     const cursor = screen.getCursorScreenPoint()
     win.setPosition(cursor.x - draOffset.x, cursor.y - draOffset.y)
   })
-  ipcMain.on('drag-start', () => {
+  ipcMain.on('drag-end', () => {
     draOffset = null
   })
 

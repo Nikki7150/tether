@@ -24,6 +24,7 @@ function App() {
   return (
     <div className={expanded ? 'app expanded' : 'app'} onMouseDown={handleMouseDown}>
       {expanded && <p>todo list goes here</p>}
+      <button className='num-tasks' onClick={toggle}>8</button>
     </div>
   )
 }
