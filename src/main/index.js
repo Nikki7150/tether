@@ -1,11 +1,33 @@
-import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage } from 'electron'
 import { join } from 'path'
+import { existsSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
+let tray = null
+let mainWindow = null
+
+const ORB_SIZE = 50
+const PANEL_W = 320
+const MIN_PANEL_H = 140
+const MAX_PANEL_H = 820
+
+function resetWindowPosition(win) {
+  const targetWindow = win ?? mainWindow
+  if (!targetWindow) return
+
+  const { width, height } = targetWindow.getBounds()
+  const { workArea } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
+  const margin = 16
+  const x = workArea.x + workArea.width - width - margin
+  const y = workArea.y + margin
+
+  targetWindow.setPosition(x, y)
+}
+
 function createWindow() {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 50,
     height: 50,
     show: false,
@@ -41,7 +63,27 @@ function createWindow() {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  return mainWindow
 }
+
+function createTrayImage() {
+  const macTemplateIconPath = join(__dirname, '../../resources/trayTemplate.png')
+  const defaultIconPath = join(__dirname, '../../resources/icon.png')
+  const chosenPath = existsSync(macTemplateIconPath) ? macTemplateIconPath : defaultIconPath
+
+  const fromFile = nativeImage.createFromPath(chosenPath)
+  const baseImage = fromFile.isEmpty() ? nativeImage.createFromPath(icon) : fromFile
+  const resized = baseImage.resize({ width: 18, height: 18 })
+
+  if (process.platform === 'darwin') {
+    resized.setTemplateImage(true)
+  }
+
+  return resized
+}
+
+
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -57,9 +99,6 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  const ORB_SIZE = 50
-  const PANEL_W = 320
-  const PANEL_H = 400
   let preExpandedPosition = null
 
   ipcMain.on('set-expanded', (event, expanded) => {
@@ -78,7 +117,7 @@ app.whenReady().then(() => {
       if (rightOverflow > 0) {
         newX -= rightOverflow;
       }
-      const panelBottomEdge = newY + PANEL_H
+      const panelBottomEdge = newY + MIN_PANEL_H
       const workAreaBottomEdge = workArea.y + workArea.height
       const bottomOverflow = panelBottomEdge - workAreaBottomEdge
       if (bottomOverflow > 0) {
@@ -88,7 +127,7 @@ app.whenReady().then(() => {
         x: newX,
         y: newY,
         width: PANEL_W,
-        height: PANEL_H
+        height: MIN_PANEL_H
       })
     } else {
       const targetX = preExpandedPosition ? preExpandedPosition.x : bounds.x
@@ -100,6 +139,35 @@ app.whenReady().then(() => {
         height: ORB_SIZE
       })
     }
+  })
+
+  ipcMain.on('set-panel-height', (event, nextHeight) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win || typeof nextHeight !== 'number') return
+
+    const bounds = win.getBounds()
+    if (bounds.width !== PANEL_W) return
+
+    const clampedHeight = Math.max(MIN_PANEL_H, Math.min(MAX_PANEL_H, Math.ceil(nextHeight)))
+    if (bounds.height === clampedHeight) return
+
+    const currentDisplay = screen.getDisplayMatching(bounds)
+    const { workArea } = currentDisplay
+    let newY = bounds.y
+
+    const panelBottomEdge = newY + clampedHeight
+    const workAreaBottomEdge = workArea.y + workArea.height
+    const bottomOverflow = panelBottomEdge - workAreaBottomEdge
+    if (bottomOverflow > 0) {
+      newY -= bottomOverflow
+    }
+
+    win.setBounds({
+      x: bounds.x,
+      y: newY,
+      width: PANEL_W,
+      height: clampedHeight
+    })
   })
 
   let draOffset = null;
@@ -121,6 +189,28 @@ app.whenReady().then(() => {
   })
 
   createWindow()
+
+  tray = new Tray(createTrayImage())
+  tray.setToolTip('Tether')
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      {
+        label: 'Reset Position',
+        click: () => resetWindowPosition()
+      },
+      {
+        label: 'Quit',
+        click: () => app.quit()
+      }
+    ])
+  )
+
+  tray.on('click', () => {
+    if (!mainWindow) return
+    if (!mainWindow.isVisible()) mainWindow.show()
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.focus()
+  })
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
