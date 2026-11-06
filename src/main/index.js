@@ -1,6 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, globalShortcut } from 'electron'
 import { join } from 'path'
-import { existsSync, glob } from 'fs'
+import { existsSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
@@ -218,20 +218,33 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 
-  const isRegistered = globalShortcut.register('CommandOrControl+Shift+X', () => {
+  const isRegistered = globalShortcut.register('CommandOrControl+Shift+T', () => {
     if (mainWindow) {
       mainWindow.show();
       mainWindow.focus();
     }
   });
 
+  const isRegistered2 = globalShortcut.register('CommandOrControl+X', () => {
+    if (mainWindow) {
+      if (!mainWindow.isVisible()) mainWindow.show()
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+      mainWindow.webContents.send('focus-add-task-input')
+    }
+  });
+
   if (!isRegistered) {
     console.log('shortcut registration failed');
+  }
+
+  if (!isRegistered2) {
+    console.log('CommandOrControl+X shortcut registration failed')
   }
 });
 
 app.on('will-quit', () => {
-  globalShortcut.unregister('CommandOrControl+Shift+X');
+  globalShortcut.unregisterAll();
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
