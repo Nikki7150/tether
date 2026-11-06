@@ -1,6 +1,6 @@
-import { app, shell, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, globalShortcut } from 'electron'
 import { join } from 'path'
-import { existsSync } from 'fs'
+import { existsSync, glob } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
@@ -217,6 +217,21 @@ app.whenReady().then(() => {
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+
+  const isRegistered = globalShortcut.register('CommandOrControl+Shift+X', () => {
+    if (mainWindow) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+
+  if (!isRegistered) {
+    console.log('shortcut registration failed');
+  }
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregister('CommandOrControl+Shift+X');
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
