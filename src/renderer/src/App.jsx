@@ -32,10 +32,13 @@ function App() {
 
   useEffect(() => {
     if (!expanded) return;
-
+    const panel = panelContentRef.current;
+    const list = panel.querySelector('.task-list-container');
+    const inner = panel.querySelector('.task-list-inner');
+    const chromeHeight = panel.offsetHeight - list.clientHeight;
     requestAnimationFrame(() => {
       if (!panelContentRef.current) return;
-      const requiredHeight = panelContentRef.current.scrollHeight;
+      const requiredHeight = chromeHeight + inner.offsetHeight;
       window.electron.ipcRenderer.send('set-panel-height', requiredHeight);
     });
   }, [expanded, tasks.length]);
@@ -48,7 +51,6 @@ function App() {
       }
       setFocusRequestId((prev) => prev + 1);
     };
-
     window.electron.ipcRenderer.on('focus-add-task-input', handleFocusAddTaskInput);
 
     return () => {

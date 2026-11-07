@@ -105,6 +105,28 @@ app.whenReady().then(() => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win) return
     const bounds = win.getBounds()
+    if (expanded) {
+      preExpandedPosition = { x: bounds.x, y: bounds.y }
+      const { workArea } = screen.getDisplayMatching(bounds)
+      let newX = bounds.x
+      let newY = bounds.y
+      const rightOverflow = newX + PANEL_W - (workArea.x + workArea.width)
+      if (rightOverflow > 0) newX -= rightOverflow
+      const bottomOverflow = newY + MIN_PANEL_H - (workArea.y + workArea.height)
+      if (bottomOverflow > 0) newY -= bottomOverflow
+      win.setBounds({ x: newX, y: newY, width: PANEL_W, height: MIN_PANEL_H })
+    } else {
+      const targetX = preExpandedPosition ? preExpandedPosition.x : bounds.x
+      const targetY = preExpandedPosition ? preExpandedPosition.y : bounds.y
+      win.setBounds({ x: targetX, y: targetY, width: ORB_SIZE, height: ORB_SIZE })
+    }
+  })
+
+  ipcMain.on('set-panel-height', (event, nextHeight) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win || typeof nextHeight !== 'number') return
+    const bounds = win.getBounds()
+    if (bounds.width !== PANEL_W) return
     const { workArea } = screen.getDisplayMatching(bounds)
     const margin = 16
     const maxHeight = Math.min(MAX_PANEL_H, workArea.height - margin * 2)
@@ -115,30 +137,6 @@ app.whenReady().then(() => {
     if (bottomOverflow > 0) newY -= bottomOverflow
     newY = Math.max(newY, workArea.y)
     win.setBounds({ x: bounds.x, y: newY, width: PANEL_W, height: clampedHeight })
-  })
-
-  ipcMain.on('set-panel-height', (event, nextHeight) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    if (!win || typeof nextHeight !== 'number') return
-    const bounds = win.getBounds()
-    if (bounds.width !== PANEL_W) return
-    const clampedHeight = Math.max(MIN_PANEL_H, Math.min(MAX_PANEL_H, Math.ceil(nextHeight)))
-    if (bounds.height === clampedHeight) return
-    const currentDisplay = screen.getDisplayMatching(bounds)
-    const { workArea } = currentDisplay
-    let newY = bounds.y
-    const panelBottomEdge = newY + clampedHeight
-    const workAreaBottomEdge = workArea.y + workArea.height
-    const bottomOverflow = panelBottomEdge - workAreaBottomEdge
-    if (bottomOverflow > 0) {
-      newY -= bottomOverflow
-    }
-    win.setBounds({
-      x: bounds.x,
-      y: newY,
-      width: PANEL_W,
-      height: clampedHeight
-    })
   })
 
   let draOffset = null;

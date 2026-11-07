@@ -8,16 +8,18 @@ const TaskList = () => {
 
     return (
         <div className="task-list-container">
-            {tasks.map((task) => (
-                <TaskItem 
-                    key={task.id}
-                    id={task.id}
-                    text={task.text}
-                    completed={task.completed}
-                    onToggle={toggleTask}
-                    onRemove={removeTask}
-                />
-            ))}
+            <div className="task-list-inner">
+                {tasks.map((task) => (
+                    <TaskItem 
+                        key={task.id}
+                        id={task.id}
+                        text={task.text}
+                        completed={task.completed}
+                        onToggle={toggleTask}
+                        onRemove={removeTask}
+                    />
+                ))}
+            </div>
         </div>
     )
 }
