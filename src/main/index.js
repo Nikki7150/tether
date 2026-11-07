@@ -105,63 +105,34 @@ app.whenReady().then(() => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win) return
     const bounds = win.getBounds()
-    if (expanded) {
-      preExpandedPosition = { x: bounds.x, y: bounds.y }
-      const currentDisplay = screen.getDisplayMatching(bounds)
-      const { workArea } = currentDisplay
-      let newX = bounds.x
-      let newY = bounds.y
-      const panelRightEdge = newX + PANEL_W
-      const workAreaRightEdge = workArea.x + workArea.width
-      const rightOverflow = panelRightEdge - workAreaRightEdge
-      if (rightOverflow > 0) {
-        newX -= rightOverflow;
-      }
-      const panelBottomEdge = newY + MIN_PANEL_H
-      const workAreaBottomEdge = workArea.y + workArea.height
-      const bottomOverflow = panelBottomEdge - workAreaBottomEdge
-      if (bottomOverflow > 0) {
-        newY -= bottomOverflow;
-      }
-      win.setBounds({
-        x: newX,
-        y: newY,
-        width: PANEL_W,
-        height: MIN_PANEL_H
-      })
-    } else {
-      const targetX = preExpandedPosition ? preExpandedPosition.x : bounds.x
-      const targetY = preExpandedPosition ? preExpandedPosition.y : bounds.y
-      win.setBounds({
-        x: targetX,
-        y: targetY,
-        width: ORB_SIZE,
-        height: ORB_SIZE
-      })
-    }
+    const { workArea } = screen.getDisplayMatching(bounds)
+    const margin = 16
+    const maxHeight = Math.min(MAX_PANEL_H, workArea.height - margin * 2)
+    const clampedHeight = Math.max(MIN_PANEL_H, Math.min(maxHeight, Math.ceil(nextHeight)))
+    if (bounds.height === clampedHeight) return
+    let newY = bounds.y
+    const bottomOverflow = newY + clampedHeight - (workArea.y + workArea.height)
+    if (bottomOverflow > 0) newY -= bottomOverflow
+    newY = Math.max(newY, workArea.y)
+    win.setBounds({ x: bounds.x, y: newY, width: PANEL_W, height: clampedHeight })
   })
 
   ipcMain.on('set-panel-height', (event, nextHeight) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win || typeof nextHeight !== 'number') return
-
     const bounds = win.getBounds()
     if (bounds.width !== PANEL_W) return
-
     const clampedHeight = Math.max(MIN_PANEL_H, Math.min(MAX_PANEL_H, Math.ceil(nextHeight)))
     if (bounds.height === clampedHeight) return
-
     const currentDisplay = screen.getDisplayMatching(bounds)
     const { workArea } = currentDisplay
     let newY = bounds.y
-
     const panelBottomEdge = newY + clampedHeight
     const workAreaBottomEdge = workArea.y + workArea.height
     const bottomOverflow = panelBottomEdge - workAreaBottomEdge
     if (bottomOverflow > 0) {
       newY -= bottomOverflow
     }
-
     win.setBounds({
       x: bounds.x,
       y: newY,
@@ -218,14 +189,14 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 
-  const isRegistered = globalShortcut.register('CommandOrControl+Shift+T', () => {
+  const isRegistered = globalShortcut.register('CommandOrControl+Option+T', () => {
     if (mainWindow) {
       mainWindow.show();
       mainWindow.focus();
     }
   });
 
-  const isRegistered2 = globalShortcut.register('CommandOrControl+X', () => {
+  const isRegistered2 = globalShortcut.register('CommandOrControl+T', () => {
     if (mainWindow) {
       if (!mainWindow.isVisible()) mainWindow.show()
       if (mainWindow.isMinimized()) mainWindow.restore()
@@ -239,7 +210,7 @@ app.whenReady().then(() => {
   }
 
   if (!isRegistered2) {
-    console.log('CommandOrControl+X shortcut registration failed')
+    console.log('CommandOrControl+T shortcut registration failed')
   }
 });
 

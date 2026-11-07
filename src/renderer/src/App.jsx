@@ -60,10 +60,16 @@ function App() {
     <div className={expanded ? 'app expanded' : 'app'} onMouseDown={handleMouseDown}>
       {!expanded && <button className='num-tasks' onClick={toggle}>{incompleteTotalTasks}</button>}
       {expanded && (
-        <div className='to-do-list-container' ref={panelContentRef} onMouseDown={(e) => e.stopPropagation()}>
-          <button className='toggle-close' onClick={toggle}>X</button>
-          <AddTask focusRequestId={focusRequestId} />
-          <TaskList />
+        <div className='panel' ref={panelContentRef}>
+          <header className='panel-header'>
+            <button className='toggle-close' onClick={toggle} onMouseDown={(e) => e.stopPropagation()}>X</button>
+            <span className='title'>Tether</span>
+            <span></span>
+          </header>
+          <div className='to-do-list-container' onMouseDown={(e) => e.stopPropagation()}>
+            <AddTask focusRequestId={focusRequestId} />
+            <TaskList />
+          </div>
         </div>
       )}
     </div>
