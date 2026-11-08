@@ -3,6 +3,7 @@ import { join } from 'path'
 import { existsSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { readFile, writeFile } from 'fs/promises'
 
 let tray = null
 let mainWindow = null
@@ -155,6 +156,29 @@ app.whenReady().then(() => {
   })
   ipcMain.on('drag-end', () => {
     draOffset = null
+  })
+
+  const tasksFile = () => join(app.getPath('userData'), 'tasks.json')
+  ipcMain.handle('tasks:load', async () => {
+    try {
+      const data = await readFile(tasksFile(), 'utf-8')
+      return JSON.parse(data)
+    } catch (error) {
+      return[]
+    }
+  })
+
+  console.log(app.getPath('userData'))
+
+  ipcMain.handle('tasks:save', async (event, tasks) => {
+    try {
+      const data = JSON.stringify(tasks, null, 2)
+      await writeFile(tasksFile(), data, 'utf-8')
+      return true
+    } catch (error) {
+      console.error('Failed to save tasks: ', error)
+      throw error
+    }
   })
 
   createWindow()

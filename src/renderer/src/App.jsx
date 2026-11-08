@@ -8,7 +8,7 @@ function App() {
   const [expanded, setExpanded] = useState(false);
   const [focusRequestId, setFocusRequestId] = useState(0);
   const panelContentRef = useRef(null);
-  const { tasks } = useTaskStore();
+  const { tasks, loaded, loadTasks } = useTaskStore();
   const handleMouseDown = () => {
     let hasMoved = false;
     window.electron.ipcRenderer.send('drag-start');
@@ -44,6 +44,15 @@ function App() {
   }, [expanded, tasks.length]);
 
   useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    window.electron.ipcRenderer.invoke('tasks:save', tasks).catch(console.error);
+  }, [tasks, loaded]);
+
+  useEffect(() => {
     const handleFocusAddTaskInput = () => {
       if (!expanded) {
         setExpanded(true);
@@ -52,7 +61,6 @@ function App() {
       setFocusRequestId((prev) => prev + 1);
     };
     window.electron.ipcRenderer.on('focus-add-task-input', handleFocusAddTaskInput);
-
     return () => {
       window.electron.ipcRenderer.removeListener('focus-add-task-input', handleFocusAddTaskInput);
     };
@@ -60,7 +68,7 @@ function App() {
 
   return (
     <div className={expanded ? 'app expanded' : 'app'} onMouseDown={handleMouseDown}>
-      {!expanded && <button className='num-tasks' onClick={toggle}>{incompleteTotalTasks}</button>}
+      {!expanded && <button className='num-tasks' onClick={toggle}>{loaded ? incompleteTotalTasks : '-'}</button>}
       {expanded && (
         <div className='panel' ref={panelContentRef}>
           <header className='panel-header'>

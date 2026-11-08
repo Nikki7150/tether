@@ -7,6 +7,7 @@ export const useTaskStore = create((set) => ({
             id: crypto.randomUUID(),
             text: text,
             completed: false,
+            completedAt: Date.now(),
         }
         set((state) => ({
             tasks: [...state.tasks, newTask]
@@ -16,7 +17,7 @@ export const useTaskStore = create((set) => ({
     toggleTask: (id) => {
         set((state) => ({
             tasks: state.tasks.map((task) =>
-                task.id === id ? { ...task, completed: !task.completed } : task
+                task.id === id ? { ...task, completed: !task.completed, completedAt: !task.completed ? Date.now() : null } : task
             )
         }))
     },
@@ -25,5 +26,17 @@ export const useTaskStore = create((set) => ({
         set((state) => ({
             tasks: state.tasks.filter((task) => task.id !== id)
         }))
-    }
+    },
+
+    loaded: false,
+
+    loadTasks: async () => {
+        try {
+            const saved = await window.electron.ipcRenderer.invoke('tasks:load');
+            set({ tasks: saved || [], loaded: true });
+        } catch (error) {
+            console.error('Failed to load tasks: ', error);
+            set({ loaded: true });
+        }
+    },
 }))
