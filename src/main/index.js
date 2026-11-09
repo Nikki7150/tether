@@ -3,7 +3,7 @@ import { join } from 'path'
 import { existsSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { readFile, writeFile } from 'fs/promises'
+import { readFile, writeFile, copyFile } from 'fs/promises'
 
 let tray = null
 let mainWindow = null
@@ -84,8 +84,6 @@ function createTrayImage() {
   return resized
 }
 
-
-
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -93,9 +91,6 @@ app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
@@ -162,9 +157,23 @@ app.whenReady().then(() => {
   ipcMain.handle('tasks:load', async () => {
     try {
       const data = await readFile(tasksFile(), 'utf-8')
-      return JSON.parse(data)
+      const parsed = JSON.parse(data)
+      if (!Array.isArray(parsed)) {
+        throw new Error('Parsed task data is not an array')
+      }
+      return parsed
     } catch (error) {
-      return[]
+      if (error.code === "ENOENT") {
+        return []
+      }
+      try {
+        const backupPath = join(app.getPath('userData'), `tasks.corrupt${Date.now()}.json`)
+        await copyFile(tasksFile(), backupPath)
+        console.error(`Corrupt tasks file backed up to ${backupPath}`)
+      } catch (backupError) {
+        console.error('Failed to create a backup of the corrupt tasks file: ', backupError)
+      }
+      return []
     }
   })
 
@@ -190,6 +199,17 @@ app.whenReady().then(() => {
       {
         label: 'Reset Position',
         click: () => resetWindowPosition()
+      },
+      {
+        label: 'Open at Login',
+        type: 'checkbox',
+        checked: app.getLoginItemSettings().openAtLogin,
+        enabled: app.isPackaged,
+        click: (menuItem) => {
+          app.setLoginItemSettings({
+            openAtLogin: menuItem.checked,
+          })
+        }
       },
       {
         label: 'Quit',

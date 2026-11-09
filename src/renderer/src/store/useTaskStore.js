@@ -7,7 +7,7 @@ export const useTaskStore = create((set) => ({
             id: crypto.randomUUID(),
             text: text,
             completed: false,
-            completedAt: Date.now(),
+            completedAt: null,
         }
         set((state) => ({
             tasks: [...state.tasks, newTask]

@@ -1,17 +1,30 @@
+:root {
+    --creamy-latte: #f3e9d7;
+    --warm-cappucino: #d6bfa6;
+    --caramel-roast: #b08968;
+    --mocha-bean: #7a553a;
+    --espresso-shot: #3b2a22;
+}
+
 .app {
     width: 100%;
-    height: 100%;
+    height: 90%;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.82);
+    background: var(--creamy-latte);
+    border: 2px solid var(--caramel-roast);
     display: flex;
     align-items: center;
     justify-content: center;
+    opacity: 90%;
 }
 
 .app.expanded {
     border-radius: 20px;
     align-items: stretch;
     justify-content: flex-start;
+    background: var(--warm-cappucino);
+    border: 10px solid var(--mocha-bean);
+    opacity: 100%;
 }
 
 .num-tasks {
