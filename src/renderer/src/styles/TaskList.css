@@ -12,6 +12,7 @@
     justify-content: space-between;
     padding: 10px;
     align-items: center;
+    gap: 10px;
 }
 
 .checkmark {
@@ -26,6 +27,7 @@
     display: grid;
     place-content: center;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .checkmark:checked {
@@ -52,6 +54,9 @@
     font-family: 'Swanky and Moo Moo', cursive;
     font-size: 20px;
     color: var(--espresso-shot);
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .task-text.completed {
@@ -65,4 +70,5 @@
     cursor: pointer;
     margin-top: 5px;
     color: var(--mocha-bean);
+    flex-shrink: 0;
 }

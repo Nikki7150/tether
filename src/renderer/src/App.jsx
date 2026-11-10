@@ -34,15 +34,20 @@ function App() {
   useEffect(() => {
     if (!expanded) return;
     const panel = panelContentRef.current;
-    const list = panel.querySelector('.task-list-container');
+    if (!panel) return;
+    const header = panel.querySelector('.panel-header');
+    const add = panel.querySelector('.add-task-container');
     const inner = panel.querySelector('.task-list-inner');
-    const chromeHeight = panel.offsetHeight - list.clientHeight;
-    requestAnimationFrame(() => {
-      if (!panelContentRef.current) return;
-      const requiredHeight = chromeHeight + inner.offsetHeight;
-      window.electron.ipcRenderer.send('set-panel-height', requiredHeight);
-    });
-  }, [expanded, tasks.length]);
+    const EXTRA = 40;
+    const measure = () => {
+      if (window.innerWidth < 250) return;
+      const required = header.offsetHeight + add.offsetHeight + inner.offsetHeight + EXTRA;
+      window.electron.ipcRenderer.send('set-panel-height', required);
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(inner);
+    return () => observer.disconnect();
+  }, [expanded]);
 
   useEffect(() => {
     loadTasks();

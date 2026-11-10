@@ -95,14 +95,13 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  let preExpandedPosition = null
+  let panelShift = { dx: 0, dy: 0 }
 
   ipcMain.on('set-expanded', (event, expanded) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win) return
     const bounds = win.getBounds()
     if (expanded) {
-      preExpandedPosition = { x: bounds.x, y: bounds.y }
       const { workArea } = screen.getDisplayMatching(bounds)
       let newX = bounds.x
       let newY = bounds.y
@@ -110,11 +109,16 @@ app.whenReady().then(() => {
       if (rightOverflow > 0) newX -= rightOverflow
       const bottomOverflow = newY + MIN_PANEL_H - (workArea.y + workArea.height)
       if (bottomOverflow > 0) newY -= bottomOverflow
+      panelShift = { dx: newX - bounds.x, dy: newY - bounds.y }
       win.setBounds({ x: newX, y: newY, width: PANEL_W, height: MIN_PANEL_H })
     } else {
-      const targetX = preExpandedPosition ? preExpandedPosition.x : bounds.x
-      const targetY = preExpandedPosition ? preExpandedPosition.y : bounds.y
-      win.setBounds({ x: targetX, y: targetY, width: ORB_SIZE, height: ORB_SIZE })
+      win.setBounds({
+        x: bounds.x - panelShift.dx,
+        y: bounds.y - panelShift.dy,
+        width: ORB_SIZE,
+        height: ORB_SIZE
+      })
+      panelShift = { dx: 0, dy: 0 }
     }
   })
 
@@ -132,6 +136,7 @@ app.whenReady().then(() => {
     const bottomOverflow = newY + clampedHeight - (workArea.y + workArea.height)
     if (bottomOverflow > 0) newY -= bottomOverflow
     newY = Math.max(newY, workArea.y)
+    panelShift.dy += newY - bounds.y
     win.setBounds({ x: bounds.x, y: newY, width: PANEL_W, height: clampedHeight })
   })
 
