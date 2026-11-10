@@ -3,6 +3,7 @@ import './styles/App.css'
 import AddTask from './components/AddTask';
 import TaskList from './components/TaskList';
 import { useTaskStore } from './store/useTaskStore';
+import Logo from './assets/tether-logo.png';
 
 function App() {
   const [expanded, setExpanded] = useState(false);
@@ -73,7 +74,7 @@ function App() {
         <div className='panel' ref={panelContentRef}>
           <header className='panel-header'>
             <button className='toggle-close' onClick={toggle} onMouseDown={(e) => e.stopPropagation()}>X</button>
-            <span className='title'>Tether</span>
+            <img src={Logo} alt="Tether logo" className="logo" />
             <span></span>
           </header>
           <div className='to-do-list-container' onMouseDown={(e) => e.stopPropagation()}>

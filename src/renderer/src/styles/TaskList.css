@@ -19,7 +19,7 @@
     -webkit-appearance: none;
     width: 20px;
     height: 20px;
-    border: 2px solid #978270;
+    border: 2px solid var(--mocha-bean);
     border-radius: 4px;
     outline: none;
     transition: all 0.2s ease-in-out;
@@ -29,8 +29,8 @@
 }
 
 .checkmark:checked {
-    background-color: #978270;
-    border-color: #978270;
+    background-color: var(--mocha-bean);
+    border-color: var(--mocha-bean);
 }
 
 .checkmark::before {
@@ -39,7 +39,7 @@
     height: 10px;
     transform: scale(0);
     transition: 120ms transform ease-in-out;
-    background-color: white;
+    background-color: var(--creamy-latte);
     clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
 }
 
@@ -49,11 +49,14 @@
 
 .task-text {
     margin: 0;
+    font-family: 'Swanky and Moo Moo', cursive;
+    font-size: 20px;
+    color: var(--espresso-shot);
 }
 
 .task-text.completed {
     text-decoration: line-through;
-    color: #8a8a8a;
+    color: var(--caramel-roast);
 }
 
 .delete-button {
@@ -61,4 +64,5 @@
     border: none;
     cursor: pointer;
     margin-top: 5px;
+    color: var(--mocha-bean);
 }
