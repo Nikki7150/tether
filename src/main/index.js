@@ -1,9 +1,9 @@
 import { app, shell, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, globalShortcut } from 'electron'
 import { join } from 'path'
-import { existsSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
 import { readFile, writeFile, copyFile } from 'fs/promises'
+import icon from '../../resources/icon.png?asset'
+import trayIcon from '../../resources/trayTemplate.png?asset'
 
 let tray = null
 let mainWindow = null
@@ -69,19 +69,11 @@ function createWindow() {
 }
 
 function createTrayImage() {
-  const macTemplateIconPath = join(__dirname, '../../resources/trayTemplate.png')
-  const defaultIconPath = join(__dirname, '../../resources/icon.png')
-  const chosenPath = existsSync(macTemplateIconPath) ? macTemplateIconPath : defaultIconPath
-
-  const fromFile = nativeImage.createFromPath(chosenPath)
-  const baseImage = fromFile.isEmpty() ? nativeImage.createFromPath(icon) : fromFile
-  const resized = baseImage.resize({ width: 18, height: 18 })
-
+  const image = nativeImage.createFromPath(trayIcon).resize({ width: 18, height: 18 })
   if (process.platform === 'darwin') {
-    resized.setTemplateImage(true)
+    image.setTemplateImage(true)
   }
-
-  return resized
+  return image
 }
 
 // This method will be called when Electron has finished

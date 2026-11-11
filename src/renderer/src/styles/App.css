@@ -6,6 +6,10 @@
     --espresso-shot: #3b2a22;
 }
 
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
 .app {
     width: 100%;
     height: 90%;

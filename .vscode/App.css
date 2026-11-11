@@ -1,0 +1,106 @@
+:root {
+    --creamy-latte: #f3e9d7;
+    --warm-cappucino: #d6bfa6;
+    --caramel-roast: #b08968;
+    --mocha-bean: #7a553a;
+    --espresso-shot: #3b2a22;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+.app {
+    width: 100%;
+    height: 90%;
+    border-radius: 50%;
+    background: var(--creamy-latte);
+    border: 2px solid var(--caramel-roast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 90%;
+}
+
+.app.expanded {
+    border-radius: 20px;
+    align-items: stretch;
+    justify-content: flex-start;
+    background: var(--warm-cappucino);
+    border: 10px solid var(--mocha-bean);
+    opacity: 100%;
+}
+
+.num-tasks {
+    padding: 2px 5px;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    font-family: 'Swanky and Moo Moo', cursive;
+    font-size: 30px;
+}
+
+.to-do-list-container {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    width: 100%;
+    padding: 5px;
+}
+
+.toggle-close {
+    padding: 2px 5px;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+}
+
+.logo {
+    width: 74px;
+    height: 44px;
+    object-fit: contain;
+}
+
+.add-task-container {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    padding: 5px 10px 0 10px;
+}
+
+.task-input {
+    width: 100%;
+    padding: 5px;
+}
+
+.task-input {
+    font-family: 'Swanky and Moo Moo', cursive;
+    font-size: 20px;
+}
+
+.add-button {
+    padding: 2px 5px;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+}
+
+.panel {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.panel-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 10px 0px 10px;
+    cursor: grab;
+}
