@@ -4,7 +4,8 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { readFile, writeFile, copyFile } from 'fs/promises'
 import icon from '../../resources/icon.png?asset'
 import trayIcon from '../../resources/trayTemplate.png?asset'
-import { syncCompletedTasks } from './notionSync'
+import { syncCompletedTasks, NOTION_VERSION } from './notionSync'
+import { saveNotionConfig, loadNotionConfig, clearNotionConfig } from './notionConfig'
 
 let tray = null
 let mainWindow = null
@@ -188,13 +189,63 @@ app.whenReady().then(() => {
     }
   })
 
-  ipcMain.handle('notion:sync', async (event, tasks) => {
-    const token = process.env.NOTION_API_KEY
-    const dataSourceId = process.env.NOTION_DATA_SOURCE_ID
+  ipcMain.handle('notion:status', async () => {
+    try {
+      return { connected: (await loadNotionConfig()) !== null }
+    } catch {
+      return { connected: false }
+    }
+  })
+
+  ipcMain.handle('notion:connect', async (event, { token, dataSourceId }) => {
+    token = typeof token === 'string' ? token.trim() : ''
+    dataSourceId = typeof dataSourceId === 'string' ? dataSourceId.trim() : ''
     if (!token || !dataSourceId) {
+      return { ok: false, error: 'Please enter both the token and the data source ID.'}
+    }
+    let res
+    try {
+      res = await fetch(
+        `https://api.notion.com/v1/data_sources/${encodeURIComponent(dataSourceId)}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Notion-Version': NOTION_VERSION }}
+      )
+    } catch {
+      return { ok: false, error: "Couldn't reach Notion. Check your internet connection." }
+    }
+    if (res.status === 401) return { ok: false, error: "Notion rejected that token." }
+    if (res.status === 404) return { ok: false, error: "Couldn't find that data source. Check the ID and that your token can access it." }
+    if (!res.ok) return { ok: false, error: `Notion returned an error (${res.status}).` }
+    const props = (await res.json()).properties ?? {}
+    const expected = { Name: 'title', Completed: 'checkbox', Date: 'date' }
+    const missing = Object.entries(expected)
+      .filter(([name, type]) => props[name]?.type !== type)
+      .map(([name, type]) => `${name} (${type})`)
+    if (missing.length > 0) {
+      return { ok: false, error: `Your database needs these columns: ${missing.join(', ')}.` }
+    }
+    try {
+      await saveNotionConfig({ token, dataSourceId })
+    } catch (error) {
+      console.error("Failed to save Notion Config: ", error.message)
+      return { ok: false, error: "Couldn't store the connection securely on this Mac." }
+    }
+    return { ok: true }
+  })
+
+  ipcMain.handle('notion:disconnect', async () => {
+    await clearNotionConfig()
+    return { ok: true }
+  })
+
+  ipcMain.handle('notion:sync', async () => {
+    let config
+    try {
+      config = await loadNotionConfig()
+    } catch {
       return { syncedIds: [], error: 'not-configured' }
     }
-    return await syncCompletedTasks({ token, dataSourceId, tasks })
+    if (!config) return { syncedIds: [], error: 'not-configured' }
+    return syncCompletedTasks({ ...config, tasks })
   })
 
   createWindow()

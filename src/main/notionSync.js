@@ -1,4 +1,4 @@
-const NOTION_VERSION = '2025-09-03'
+export const NOTION_VERSION = '2025-09-03'
 const localDate = (ms) => new Date(ms).toLocaleDateString('en-CA')
 
 export async function syncCompletedTasks({ token, dataSourceId, tasks }) {
