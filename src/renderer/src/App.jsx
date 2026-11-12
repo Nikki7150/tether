@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import './styles/App.css'
 import AddTask from './components/AddTask';
 import TaskList from './components/TaskList';
+import Settings from './components/Settings';
 import { useTaskStore } from './store/useTaskStore';
 import Logo from './assets/tether-logo.png';
 
@@ -10,6 +11,9 @@ function App() {
   const [focusRequestId, setFocusRequestId] = useState(0);
   const panelContentRef = useRef(null);
   const { tasks, loaded, loadTasks, markSynced } = useTaskStore();
+  const [view, setView] = useState('tasks');
+  const [notionConnected, setNotionConnected] = useState(false);
+
   const handleMouseDown = () => {
     let hasMoved = false;
     window.electron.ipcRenderer.send('drag-start');
@@ -59,6 +63,9 @@ function App() {
   }, [tasks, loaded]);
 
   useEffect(() => {
+    window.electron.ipcRenderer.invoke('notion:status').then((status) => {
+      setNotionConnected(Boolean(status));
+    });
     const handleFocusAddTaskInput = () => {
       if (!expanded) {
         setExpanded(true);
@@ -66,9 +73,18 @@ function App() {
       }
       setFocusRequestId((prev) => prev + 1);
     };
+    const handleOpenSettings = () => {
+      if (!expanded) {
+        setExpanded(true);
+        window.electron.ipcRenderer.send('set-expanded', true);
+      }
+      setView('settings')
+    }
     window.electron.ipcRenderer.on('focus-add-task-input', handleFocusAddTaskInput);
+    window.electron.ipcRenderer.on('open-settings', handleOpenSettings);
     return () => {
       window.electron.ipcRenderer.removeListener('focus-add-task-input', handleFocusAddTaskInput);
+      window.electron.ipcRenderer.removeListener('open-settings', handleOpenSettings);
     };
   }, [expanded]);
 
@@ -101,19 +117,32 @@ function App() {
           <header className='panel-header'>
             <button className='toggle-close' onClick={toggle} onMouseDown={(e) => e.stopPropagation()}>X</button>
             <img src={Logo} alt="Tether logo" className="logo" />
-            <button
-              className='toggle-close'
-              onClick={handleSync}
-              disabled={syncing}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              {syncing ? '...' : 'Sync'}
-            </button>
+            {notionConnected ? (
+              <button
+                className='toggle-close'
+                onClick={handleSync}
+                disabled={syncing}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                {syncing ? '...' : 'Sync'}
+              </button>
+            ) : (
+              <span></span>
+            )}
           </header>
-          <div className='to-do-list-container' onMouseDown={(e) => e.stopPropagation()}>
-            <AddTask focusRequestId={focusRequestId} />
-            <TaskList />
-          </div>
+          {view === 'tasks' ? (
+            <div className='to-do-list-container' onMouseDown={(e) => e.stopPropagation()}>
+              <AddTask focusRequestId={focusRequestId} />
+              <TaskList />
+            </div>
+          ) : (
+            <Settings
+              notionConnected={notionConnected}
+              setNotionConnected={setNotionConnected}
+              onBack={() => setView('tasks')}
+            />
+          )}
+          
         </div>
       )}
     </div>
