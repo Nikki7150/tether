@@ -4,6 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { readFile, writeFile, copyFile } from 'fs/promises'
 import icon from '../../resources/icon.png?asset'
 import trayIcon from '../../resources/trayTemplate.png?asset'
+import { syncCompletedTasks } from './notionSync'
 
 let tray = null
 let mainWindow = null
@@ -185,6 +186,15 @@ app.whenReady().then(() => {
       console.error('Failed to save tasks: ', error)
       throw error
     }
+  })
+
+  ipcMain.handle('notion:sync', async (event, tasks) => {
+    const token = process.env.NOTION_API_KEY
+    const dataSourceId = process.env.NOTION_DATA_SOURCE_ID
+    if (!token || !dataSourceId) {
+      return { syncedIds: [], error: 'not-configured' }
+    }
+    return await syncCompletedTasks({ token, dataSourceId, tasks })
   })
 
   createWindow()

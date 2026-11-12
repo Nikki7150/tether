@@ -22,6 +22,14 @@ export const useTaskStore = create((set) => ({
         }))
     },
 
+    markSynced: (ids) => {
+        set((state) => ({
+            tasks: state.tasks.map((task) =>
+                ids.includes(task.id) ? { ...task, syncedAt: Date.now() } : task
+            )
+        }))
+    },
+
     removeTask: (id) => {
         set((state) => ({
             tasks: state.tasks.filter((task) => task.id !== id)

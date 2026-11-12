@@ -9,7 +9,7 @@ function App() {
   const [expanded, setExpanded] = useState(false);
   const [focusRequestId, setFocusRequestId] = useState(0);
   const panelContentRef = useRef(null);
-  const { tasks, loaded, loadTasks } = useTaskStore();
+  const { tasks, loaded, loadTasks, markSynced } = useTaskStore();
   const handleMouseDown = () => {
     let hasMoved = false;
     window.electron.ipcRenderer.send('drag-start');
@@ -72,6 +72,27 @@ function App() {
     };
   }, [expanded]);
 
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    if (syncing) return;
+    const pending = tasks.filter((t) => t.completed && !t.syncedAt);
+    if (pending.length === 0) {
+      console.log('Nothing to sync');
+      return;
+    }
+    setSyncing(true);
+    try {
+      const result = await window.electron.ipcRenderer.invoke('notion:sync', pending);
+      if (result.syncedIds.length > 0) markSynced(result.syncedIds);
+      console.log('sync result:', result);
+    } catch (error) {
+      console.error('sync crashed:', error);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <div className={expanded ? 'app expanded' : 'app'} onMouseDown={handleMouseDown}>
       {!expanded && <button className='num-tasks' onClick={toggle}>{loaded ? incompleteTotalTasks : '-'}</button>}
@@ -80,7 +101,14 @@ function App() {
           <header className='panel-header'>
             <button className='toggle-close' onClick={toggle} onMouseDown={(e) => e.stopPropagation()}>X</button>
             <img src={Logo} alt="Tether logo" className="logo" />
-            <span></span>
+            <button
+              className='toggle-close'
+              onClick={handleSync}
+              disabled={syncing}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              {syncing ? '...' : 'Sync'}
+            </button>
           </header>
           <div className='to-do-list-container' onMouseDown={(e) => e.stopPropagation()}>
             <AddTask focusRequestId={focusRequestId} />
