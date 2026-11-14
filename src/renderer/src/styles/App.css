@@ -56,6 +56,7 @@
     border: none;
     cursor: pointer;
     font-size: 20px;
+    font-family: 'Swanky and Moo Moo', cursive;
 }
 
 .logo {
@@ -103,4 +104,119 @@
     align-items: center;
     padding: 10px 10px 0px 10px;
     cursor: grab;
+}
+
+.settings-view {
+    padding: 5px;
+    background-color: transparent;
+    border: none;
+    font-family: 'Swanky and Moo Moo', cursive;
+}
+
+.settings-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.back-button {
+    background-color: transparent;
+    border: none;
+    font-family: 'Swanky and Moo Moo', cursive;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.back-button:hover {
+    color: var(--mocha-bean);
+}
+
+.settings-h2 {
+    font-size: 30px;
+    margin: 0;
+    color: var(--mocha-bean);
+}
+
+.space {
+    width: 30px;
+}
+
+.connect-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.form-group label {
+    font-size: 22px;
+    text-decoration: underline;
+}
+
+.form-group input {
+    background-color: transparent;
+    border: none;
+    font-family: 'Swanky and Moo Moo', cursive;
+    font-size: 20px;
+    border-bottom: 2px dashed var(--mocha-bean);
+    color: var(--mocha-bean);
+}
+
+.form-group input::placeholder {
+    color: var(--caramel-roast);
+}
+
+.connect-button {
+    background-color: transparent;
+    border: none;
+    font-family: 'Swanky and Moo Moo', cursive;
+    font-size: 30px;
+    cursor: pointer;
+    width: fit-content;
+    padding: 0;
+}
+
+.notion-head {
+    color: var(--mocha-bean);
+    margin: 0;
+}
+
+.settings-error {
+    color: rgb(163, 26, 26);
+    font-size: 20px;
+    margin: 0;
+}
+
+.connected-state {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    padding-bottom: 0;
+    align-items: center;
+}
+
+.disconnect-button {
+    background-color: transparent;
+    border: none;
+    font-family: 'Swanky and Moo Moo', cursive;
+    font-size: 30px;
+    cursor: pointer;
+    width: fit-content;
+    padding: 0;
+}
+
+.connected-text {
+    font-size: 25px;
+    color: var(--creamy-latte);
+    background-color: var(--caramel-roast);
+    text-align: center;
+    margin: 5px;
+    padding: 0 15px 0 15px;
 }

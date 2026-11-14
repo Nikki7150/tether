@@ -10,9 +10,12 @@ function App() {
   const [expanded, setExpanded] = useState(false);
   const [focusRequestId, setFocusRequestId] = useState(0);
   const panelContentRef = useRef(null);
-  const { tasks, loaded, loadTasks, markSynced } = useTaskStore();
+  const { tasks, loaded, loadTasks } = useTaskStore();
   const [view, setView] = useState('tasks');
   const [notionConnected, setNotionConnected] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const syncingRef = useRef(false);
+  const [notice, setNotice] = useState(null);
 
   const handleMouseDown = () => {
     let hasMoved = false;
@@ -32,6 +35,7 @@ function App() {
     const next = !expanded
     setExpanded(next)
     window.electron.ipcRenderer.send('set-expanded', next)
+    setView('tasks');
   }
   const incompleteTotalTasks = tasks.filter((task) => !task.completed).length;
 
@@ -39,19 +43,21 @@ function App() {
     if (!expanded) return;
     const panel = panelContentRef.current;
     if (!panel) return;
+    const noticeEl = panel.querySelector('.sync-notice');
     const header = panel.querySelector('.panel-header');
     const add = panel.querySelector('.add-task-container');
-    const inner = panel.querySelector('.task-list-inner');
-    const EXTRA = 40;
+    const target = panel.querySelector(view === 'tasks' ? '.task-list-inner' : '.settings-view');
+    if (!header || !target) return;
+    const EXTRA = 80;
     const measure = () => {
       if (window.innerWidth < 250) return;
-      const required = header.offsetHeight + add.offsetHeight + inner.offsetHeight + EXTRA;
+      const required = header.offsetHeight + (add ? add.offsetHeight : 0) + target.offsetHeight + EXTRA + (noticeEl ? noticeEl.offsetHeight : 0);
       window.electron.ipcRenderer.send('set-panel-height', required);
     };
     const observer = new ResizeObserver(measure);
-    observer.observe(inner);
+    observer.observe(target);
     return () => observer.disconnect();
-  }, [expanded]);
+  }, [expanded, view, notice]);
 
   useEffect(() => {
     loadTasks();
@@ -63,14 +69,18 @@ function App() {
   }, [tasks, loaded]);
 
   useEffect(() => {
-    window.electron.ipcRenderer.invoke('notion:status').then((status) => {
-      setNotionConnected(Boolean(status));
-    });
+    window.electron.ipcRenderer.invoke('notion:status')
+      .then((status) => setNotionConnected(status.connected))
+      .catch(() => setNotionConnected(false));
+  }, []);
+
+  useEffect(() => {
     const handleFocusAddTaskInput = () => {
       if (!expanded) {
         setExpanded(true);
         window.electron.ipcRenderer.send('set-expanded', true);
       }
+      setView('tasks');
       setFocusRequestId((prev) => prev + 1);
     };
     const handleOpenSettings = () => {
@@ -78,8 +88,8 @@ function App() {
         setExpanded(true);
         window.electron.ipcRenderer.send('set-expanded', true);
       }
-      setView('settings')
-    }
+      setView('settings');
+    };
     window.electron.ipcRenderer.on('focus-add-task-input', handleFocusAddTaskInput);
     window.electron.ipcRenderer.on('open-settings', handleOpenSettings);
     return () => {
@@ -88,26 +98,62 @@ function App() {
     };
   }, [expanded]);
 
-  const [syncing, setSyncing] = useState(false);
+  const flashNotice = (text) => {
+    setNotice({ kind: 'info', text });
+    setTimeout(() =>
+      setNotice((n) => (n?.kind === 'info' ? null : n))
+    , 3000);
+  }
 
-  const handleSync = async () => {
-    if (syncing) return;
-    const pending = tasks.filter((t) => t.completed && !t.syncedAt);
+  const runSync = async ({ manual = false } = {}) => {
+    if (syncingRef.current) return;
+    const { tasks: latest, markSynced } = useTaskStore.getState();
+    const pending = latest.filter((t) => t.completed && !t.syncedAt);
     if (pending.length === 0) {
-      console.log('Nothing to sync');
+      if (manual) flashNotice('Everything is already synced');
       return;
     }
+    syncingRef.current = true;
     setSyncing(true);
     try {
       const result = await window.electron.ipcRenderer.invoke('notion:sync', pending);
       if (result.syncedIds.length > 0) markSynced(result.syncedIds);
-      console.log('sync result:', result);
+      if (result.error === 'auth') {
+        setNotice({ kind: 'error', text: 'Notion connection expired. Reconnect in Settings.' });
+      } else if (result.error === 'not-configured') {
+        setNotionConnected(false);
+      } else if (result.error === 'network') {
+        if (manual) flashNotice("Couldn't reach Notion. Will try again later.");
+      } else {
+        setNotice(null);
+      }
     } catch (error) {
       console.error('sync crashed:', error);
     } finally {
+      syncingRef.current = false;
       setSyncing(false);
     }
   };
+
+  const didLaunchSync = useRef(false);
+  useEffect(() => {
+    if (!loaded || !notionConnected || didLaunchSync.current) return;
+    didLaunchSync.current = true;
+    runSync();
+  }, [loaded,  notionConnected]); // Launch sync
+
+  useEffect(() => {
+    if (!notionConnected) return;
+    const HOUR_MS = 60 * 60 * 1000;
+    const intervalId = setInterval(() => {
+      runSync();
+    }, HOUR_MS);
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [notionConnected])
+
+  useEffect(() => setNotice(null), [notionConnected]);
 
   return (
     <div className={expanded ? 'app expanded' : 'app'} onMouseDown={handleMouseDown}>
@@ -120,7 +166,7 @@ function App() {
             {notionConnected ? (
               <button
                 className='toggle-close'
-                onClick={handleSync}
+                onClick={() => runSync({ manual: true })}
                 disabled={syncing}
                 onMouseDown={(e) => e.stopPropagation()}
               >
@@ -130,6 +176,12 @@ function App() {
               <span></span>
             )}
           </header>
+          {notice && (
+            <p className={`sync-notice ${notice.kind}`} onMouseDown={(e) => e.stopPropagation()}>
+              {notice.text}
+              {notice.kind === 'error' && <button onClick={() => setView('settings')}>Settings</button>}
+            </p>
+          )}
           {view === 'tasks' ? (
             <div className='to-do-list-container' onMouseDown={(e) => e.stopPropagation()}>
               <AddTask focusRequestId={focusRequestId} />

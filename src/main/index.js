@@ -237,7 +237,7 @@ app.whenReady().then(() => {
     return { ok: true }
   })
 
-  ipcMain.handle('notion:sync', async () => {
+  ipcMain.handle('notion:sync', async (event, tasks) => {
     let config
     try {
       config = await loadNotionConfig()
@@ -249,6 +249,13 @@ app.whenReady().then(() => {
   })
 
   createWindow()
+
+  function showWindow() {
+    if (!mainWindow) return
+    if (!mainWindow.isVisible()) mainWindow.show()
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.focus()
+  }
 
   tray = new Tray(createTrayImage())
   tray.setToolTip('Tether')
@@ -267,6 +274,13 @@ app.whenReady().then(() => {
           app.setLoginItemSettings({
             openAtLogin: menuItem.checked,
           })
+        }
+      },
+      {
+        label: 'Settings…',
+        click: () => {
+          showWindow()
+          mainWindow?.webContents.send('open-settings')
         }
       },
       {
